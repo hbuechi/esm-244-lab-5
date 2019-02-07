@@ -1,0 +1,34 @@
+---
+title: 'ESM 244: Lab 5'
+author: "Hanna Buechi"
+date: "2/6/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages_data}
+
+library(tidyverse)
+library(tseries)
+library(forecast)
+
+energy <- read_csv("energy.csv")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
