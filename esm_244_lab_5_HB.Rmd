@@ -19,6 +19,172 @@ energy <- read_csv("energy.csv")
 
 ```
 
+c. Create 'ts' time series data using information in the res_total column from 'energy' data frame.
+
+```{r}
+
+res_ts <- ts(energy$res_total, frequency = 12, start = c(1973,1)) # 12 indicates monthly data, starts in January of 1973)
+# View(res_ts) gives different output than res_ts
+
+plot(res_ts)
+
+# looks additive, intermediate peaks get larger through time
+```
+
+d. Decompose ts
+
+```{r}
+
+res_dc <- decompose(res_ts) # does Steps 1-4 of decomposition from class (ie. trend, seasonal, residuals)
+plot(res_dc) # original, trend, seasonality, residuals that show trends that don't depend on the other decompositions
+
+```
+
+e. Other cool ways to present time-series data
+
+```{r monthplot}
+
+# a lot of information in a simple way
+
+monthplot(res_ts) # over the years that have been studied, there has been a large spike in residential energy usage in summer months (that intermediate peak!)
+
+```
+
+```{r seasonplot}
+
+ggseasonplot(res_ts) # similar pattern each year, more recent years are higher
+
+ggseasonplot(res_ts, polar = TRUE) # what's the y-axis for August here?
+
+```
+
+f. Simple moving averages
+
+forecast::ma()
+
+```{r}
+
+sma_res <- ma(res_ts, order = 5) # window size = 5, NAs on the ends means end value were cut because they don't have a window
+plot(sma_res)
+
+# play around with changing window size with plotting
+
+plot(res_ts)
+lines(sma_res, col = "red") # run simultaneously to get original data plot with moving average line
+
+```
+
+g. ACF (autocorrelation)
+
+```{r}
+
+res_acf <- acf(res_ts) # acf = autocorrelation function
+
+# drastic peaks every 12 months with minor correlations on either side
+
+ggtsdisplay(res_ts) # displays original data and ACF, which is nice
+
+```
+
+
+i. Holt-Winters exponential smoothing
+
+```{r}
+
+res_hw <- HoltWinters(res_ts)
+res_hw
+
+# additive (yep), trend (yep)
+# alpha, beta, gamma for smoothing
+# coefficients will be used in linear combinations for forecasting
+
+plot(res_hw)
+
+# how does model look with original data? (before predicting)
+
+```
+
+Now some future forecasting with Holt-Winters
+
+```{r}
+
+
+res_forecast <- forecast(res_hw, h = 60) # H-W model we already created 60 increments - 5 years - into the future
+plot(res_forecast)
+
+# recent slight downward or constant trend is dominating
+# dark grey ribbons 80% CI, light grey 95% CI
+# call res_forecast values into ggplot()
+
+```
+
+Check distribution of the residuals (good - I want to think about this more)
+
+```{r}
+
+par(mfrow = c(1,2))
+hist(res_forecast$residuals)
+qqnorm(res_forecast$residuals) # NICE
+
+
+```
+
+
+Autoregressive integrated moving average (ARIMA) using auto.arima() for p, d, q.
+
+```{r}
+
+res_pdq <- auto.arima(res_ts)
+res_pdq
+
+# (p,d,q) non-seasonal = (1,0,2), (P,D,Q) seasonal = (0,1,1)
+```
+
+(p,d,q) non-seasonal = (1,0,2), (P,D,Q) seasonal = (0,1,1)
+
+Fit the ARIMA model using those pdq inputs:
+```{r}
+
+res_arima <- arima(res_ts, order = c(1,0,2), seasonal = list(order = c(0,1,1)))
+
+
+# Check out the residuals
+
+par(mfrow = c(1,2))
+hist(res_arima$residuals)
+qqnorm(res_arima$residuals)
+
+# might be a little bit "leptokirtic" - sharper than normal
+
+```
+
+Now forecast with ARIMA outputs:
+
+```{r}
+
+forecast_res <- forecast(res_arima, h = 72)
+plot(forecast_res)
+
+# similar to H-W plot because there is good seasonality
+
+```
+
+Now let's try viewing this in ggplot:
+```{r}
+
+res_df <- data.frame(forecast_res) # coerce list to dataframe
+
+# point forecast is forecasted estimate with 80% and 95% CI
+
+month_seq <- seq(1,72)
+res_df_2 <- data.frame(month_seq, res_df) # those row names....
+
+ggplot(res_df_2, aes(x = month_seq, y = Point.Forecast)) +
+  geom_line()
+
+```
+
+
 
 
 
